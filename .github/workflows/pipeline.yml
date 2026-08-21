@@ -47,7 +47,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install Dependencies
-        run: pip install -r tourism-project/requirements.txt
+        run: pip install -r tourism_project/requirements.txt
 
       - name: Download Registered Dataset
         uses: actions/download-artifact@v4
