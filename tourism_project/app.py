@@ -1,5 +1,8 @@
-
+import sklearn
 import streamlit as st
+
+st.write("scikit-learn version:", sklearn.__version__)
+
 import pandas as pd
 import joblib
 from pathlib import Path
