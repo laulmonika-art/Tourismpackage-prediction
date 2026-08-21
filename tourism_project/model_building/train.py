@@ -2,7 +2,6 @@
 import pandas as pd
 import joblib
 import mlflow
-import mlflow.sklearn
 
 from pathlib import Path
 
@@ -42,7 +41,7 @@ MODEL_PATH = DEPLOYMENT_DIR / "tourism_model.joblib"
 
 
 # ============================================================
-# CHECK FILES
+# CHECK INPUT FILES
 # ============================================================
 
 required_files = [
@@ -60,7 +59,7 @@ for file_path in required_files:
 
 
 # ============================================================
-# LOAD TRAINING AND TEST DATA
+# LOAD DATA
 # ============================================================
 
 print("Loading train and test data...")
@@ -78,7 +77,7 @@ print("y_test shape :", y_test.shape)
 
 
 # ============================================================
-# IDENTIFY COLUMNS
+# IDENTIFY FEATURES
 # ============================================================
 
 numeric_features = X_train.select_dtypes(
@@ -175,14 +174,16 @@ param_grid = {
 
 
 # ============================================================
-# MLflow
+# MLFLOW EXPERIMENT
 # ============================================================
 
-mlflow.set_experiment("Tourism_Package_Prediction")
+mlflow.set_experiment(
+    "Tourism_Package_Prediction"
+)
 
 
 # ============================================================
-# GRID SEARCH + MLflow
+# GRID SEARCH
 # ============================================================
 
 print("\nStarting hyperparameter tuning...")
@@ -196,18 +197,22 @@ grid_search = GridSearchCV(
     verbose=1
 )
 
+
+# ============================================================
+# TRAIN + MLFLOW
+# ============================================================
+
 with mlflow.start_run() as run:
 
-    # Train
-    grid_search.fit(X_train, y_train)
+    grid_search.fit(
+        X_train,
+        y_train
+    )
 
-    # Best model
     best_model = grid_search.best_estimator_
 
-    # Best parameters
     best_params = grid_search.best_params_
 
-    # Best CV score
     best_cv_score = grid_search.best_score_
 
     print("\nBest parameters:")
@@ -219,10 +224,17 @@ with mlflow.start_run() as run:
 
 
     # ========================================================
-    # EVALUATE ON TEST DATA
+    # PREDICTION
     # ========================================================
 
-    y_pred = best_model.predict(X_test)
+    y_pred = best_model.predict(
+        X_test
+    )
+
+
+    # ========================================================
+    # METRICS
+    # ========================================================
 
     accuracy = accuracy_score(
         y_test,
@@ -274,7 +286,7 @@ with mlflow.start_run() as run:
 
 
     # ========================================================
-    # PRINT RESULTS
+    # DISPLAY RESULTS
     # ========================================================
 
     print("\n==============================")
@@ -299,31 +311,34 @@ with mlflow.start_run() as run:
     print("\nBest model saved to:")
     print(MODEL_PATH)
 
+    print(
+        "Model file exists:",
+        MODEL_PATH.exists()
+    )
 
-    # ========================================================
-    # LOG MODEL TO MLflow
-    # ========================================================
+    print(
+        "Model size:",
+        MODEL_PATH.stat().st_size,
+        "bytes"
+    )
 
-   joblib.dump(
-    best_model,
-    MODEL_PATH
-)
+    print("\nMLflow parameters and metrics logged.")
 
-print("\nBest model saved to:")
-print(MODEL_PATH)
-
-print("\nModel file exists:", MODEL_PATH.exists())
-
-# ========================================================
-# MLflow
-# ========================================================
-
-print("\nMLflow parameters and metrics logged successfully.")
-
-print("MLflow run ID:")
-print(run.info.run_id)
-    print("\nMLflow run ID:")
-    print(run.info.run_id)
+    print(
+        "MLflow run ID:",
+        run.info.run_id
+    )
 
 
-print("\nTraining completed successfully.")
+# ============================================================
+# FINAL CHECK
+# ============================================================
+
+if not MODEL_PATH.exists():
+    raise FileNotFoundError(
+        f"Model was not created: {MODEL_PATH}"
+    )
+
+print("\nTraining completed successfully!")
+                ^
+IndentationError: unindent does not match any outer indentation level
