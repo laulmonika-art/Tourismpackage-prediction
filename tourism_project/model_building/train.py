@@ -1,3 +1,4 @@
+%%writefile /content/tourism_project/model_building/train.py
 
 import pandas as pd
 import joblib
@@ -71,9 +72,9 @@ y_train = pd.read_csv(YTRAIN_PATH).squeeze("columns")
 y_test = pd.read_csv(YTEST_PATH).squeeze("columns")
 
 print("X_train shape:", X_train.shape)
-print("X_test shape :", X_test.shape)
+print("X_test shape:", X_test.shape)
 print("y_train shape:", y_train.shape)
-print("y_test shape :", y_test.shape)
+print("y_test shape:", y_test.shape)
 
 
 # ============================================================
@@ -174,7 +175,7 @@ param_grid = {
 
 
 # ============================================================
-# MLFLOW EXPERIMENT
+# MLFLOW
 # ============================================================
 
 mlflow.set_experiment(
@@ -199,7 +200,7 @@ grid_search = GridSearchCV(
 
 
 # ============================================================
-# TRAIN + MLFLOW
+# TRAIN
 # ============================================================
 
 with mlflow.start_run() as run:
@@ -222,7 +223,6 @@ with mlflow.start_run() as run:
         f"\nBest CV accuracy: {best_cv_score:.4f}"
     )
 
-
     # ========================================================
     # PREDICTION
     # ========================================================
@@ -230,7 +230,6 @@ with mlflow.start_run() as run:
     y_pred = best_model.predict(
         X_test
     )
-
 
     # ========================================================
     # METRICS
@@ -259,7 +258,6 @@ with mlflow.start_run() as run:
         zero_division=0
     )
 
-
     # ========================================================
     # LOG PARAMETERS
     # ========================================================
@@ -270,7 +268,6 @@ with mlflow.start_run() as run:
         "scoring": "accuracy",
         **best_params
     })
-
 
     # ========================================================
     # LOG METRICS
@@ -284,7 +281,6 @@ with mlflow.start_run() as run:
         "test_f1": f1
     })
 
-
     # ========================================================
     # DISPLAY RESULTS
     # ========================================================
@@ -297,7 +293,6 @@ with mlflow.start_run() as run:
     print(f"Precision: {precision:.4f}")
     print(f"Recall   : {recall:.4f}")
     print(f"F1 Score : {f1:.4f}")
-
 
     # ========================================================
     # SAVE MODEL
@@ -340,5 +335,3 @@ if not MODEL_PATH.exists():
     )
 
 print("\nTraining completed successfully!")
-                ^
-IndentationError: unindent does not match any outer indentation level
