@@ -304,11 +304,24 @@ with mlflow.start_run() as run:
     # LOG MODEL TO MLflow
     # ========================================================
 
-    mlflow.sklearn.log_model(
-        best_model,
-        artifact_path="tourism_model"
-    )
+   joblib.dump(
+    best_model,
+    MODEL_PATH
+)
 
+print("\nBest model saved to:")
+print(MODEL_PATH)
+
+print("\nModel file exists:", MODEL_PATH.exists())
+
+# ========================================================
+# MLflow
+# ========================================================
+
+print("\nMLflow parameters and metrics logged successfully.")
+
+print("MLflow run ID:")
+print(run.info.run_id)
     print("\nMLflow run ID:")
     print(run.info.run_id)
 
