@@ -22,9 +22,9 @@ from sklearn.metrics import (
 )
 
 
-# =========================================================
-# Paths
-# =========================================================
+# ============================================================
+# PATHS
+# ============================================================
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
@@ -41,59 +41,66 @@ DEPLOYMENT_DIR.mkdir(parents=True, exist_ok=True)
 MODEL_PATH = DEPLOYMENT_DIR / "tourism_model.joblib"
 
 
-# =========================================================
-# Load train and test data
-# =========================================================
+# ============================================================
+# CHECK FILES
+# ============================================================
 
-print("Loading training and testing data...")
-
-for path in [
+required_files = [
     XTRAIN_PATH,
     XTEST_PATH,
     YTRAIN_PATH,
     YTEST_PATH
-]:
-    if not path.exists():
+]
+
+for file_path in required_files:
+    if not file_path.exists():
         raise FileNotFoundError(
-            f"Required file not found: {path}"
+            f"Required file not found: {file_path}"
         )
+
+
+# ============================================================
+# LOAD TRAINING AND TEST DATA
+# ============================================================
+
+print("Loading train and test data...")
 
 X_train = pd.read_csv(XTRAIN_PATH)
 X_test = pd.read_csv(XTEST_PATH)
 
-y_train = pd.read_csv(YTRAIN_PATH).squeeze()
-y_test = pd.read_csv(YTEST_PATH).squeeze()
+y_train = pd.read_csv(YTRAIN_PATH).squeeze("columns")
+y_test = pd.read_csv(YTEST_PATH).squeeze("columns")
 
-print("X_train:", X_train.shape)
-print("X_test :", X_test.shape)
-print("y_train:", y_train.shape)
-print("y_test :", y_test.shape)
+print("X_train shape:", X_train.shape)
+print("X_test shape :", X_test.shape)
+print("y_train shape:", y_train.shape)
+print("y_test shape :", y_test.shape)
 
 
-# =========================================================
-# Identify numerical and categorical columns
-# =========================================================
+# ============================================================
+# IDENTIFY COLUMNS
+# ============================================================
 
 numeric_features = X_train.select_dtypes(
     include=["int64", "float64"]
 ).columns.tolist()
 
 categorical_features = X_train.select_dtypes(
-    include=["object"]
+    include=["object", "category", "bool"]
 ).columns.tolist()
 
-print("\nNumerical columns:")
+print("\nNumerical features:")
 print(numeric_features)
 
-print("\nCategorical columns:")
+print("\nCategorical features:")
 print(categorical_features)
 
 
-# =========================================================
-# Preprocessing
-# =========================================================
+# ============================================================
+# PREPROCESSING
+# ============================================================
 
-numeric_transformer = Pipeline(
+numeric_pipeline = Pipeline(
     steps=[
         (
             "imputer",
@@ -102,7 +109,7 @@ numeric_transformer = Pipeline(
     ]
 )
 
-categorical_transformer = Pipeline(
+categorical_pipeline = Pipeline(
     steps=[
         (
             "imputer",
@@ -121,49 +128,44 @@ categorical_transformer = Pipeline(
 preprocessor = ColumnTransformer(
     transformers=[
         (
-            "num",
-            numeric_transformer,
+            "numeric",
+            numeric_pipeline,
             numeric_features
         ),
         (
-            "cat",
-            categorical_transformer,
+            "categorical",
+            categorical_pipeline,
             categorical_features
         )
     ]
 )
 
 
-# =========================================================
-# Define model
-# =========================================================
+# ============================================================
+# MODEL
+# ============================================================
 
-model = RandomForestClassifier(
-    random_state=42
+rf_model = RandomForestClassifier(
+    random_state=42,
+    n_jobs=-1
 )
 
 
-# =========================================================
-# Create pipeline
-# =========================================================
+# ============================================================
+# PIPELINE
+# ============================================================
 
 pipeline = Pipeline(
     steps=[
-        (
-            "preprocessor",
-            preprocessor
-        ),
-        (
-            "classifier",
-            model
-        )
+        ("preprocessor", preprocessor),
+        ("classifier", rf_model)
     ]
 )
 
 
-# =========================================================
-# Hyperparameter grid
-# =========================================================
+# ============================================================
+# HYPERPARAMETER GRID
+# ============================================================
 
 param_grid = {
     "classifier__n_estimators": [100, 200],
@@ -172,36 +174,32 @@ param_grid = {
 }
 
 
-# =========================================================
-# MLflow experiment
-# =========================================================
+# ============================================================
+# MLflow
+# ============================================================
 
-mlflow.set_experiment(
-    "Tourism_Package_Prediction"
-)
+mlflow.set_experiment("Tourism_Package_Prediction")
 
 
-# =========================================================
-# Hyperparameter tuning
-# =========================================================
+# ============================================================
+# GRID SEARCH + MLflow
+# ============================================================
 
-print("\nStarting GridSearchCV...")
+print("\nStarting hyperparameter tuning...")
 
 grid_search = GridSearchCV(
     estimator=pipeline,
     param_grid=param_grid,
     cv=3,
     scoring="accuracy",
-    n_jobs=-1
+    n_jobs=-1,
+    verbose=1
 )
 
+with mlflow.start_run() as run:
 
-with mlflow.start_run():
-
-    grid_search.fit(
-        X_train,
-        y_train
-    )
+    # Train
+    grid_search.fit(X_train, y_train)
 
     # Best model
     best_model = grid_search.best_estimator_
@@ -209,37 +207,22 @@ with mlflow.start_run():
     # Best parameters
     best_params = grid_search.best_params_
 
+    # Best CV score
+    best_cv_score = grid_search.best_score_
+
     print("\nBest parameters:")
     print(best_params)
 
     print(
-        "\nBest cross-validation accuracy:",
-        grid_search.best_score_
+        f"\nBest CV accuracy: {best_cv_score:.4f}"
     )
 
 
-    # =====================================================
-    # Log parameters
-    # =====================================================
-
-    mlflow.log_params(best_params)
-
-    mlflow.log_metric(
-        "cv_accuracy",
-        grid_search.best_score_
-    )
-
-
-    # =====================================================
-    # Test prediction
-    # =====================================================
+    # ========================================================
+    # EVALUATE ON TEST DATA
+    # ========================================================
 
     y_pred = best_model.predict(X_test)
-
-
-    # =====================================================
-    # Evaluation metrics
-    # =====================================================
 
     accuracy = accuracy_score(
         y_test,
@@ -265,67 +248,69 @@ with mlflow.start_run():
     )
 
 
-    # =====================================================
-    # Log metrics to MLflow
-    # =====================================================
+    # ========================================================
+    # LOG PARAMETERS
+    # ========================================================
 
-    mlflow.log_metric(
-        "test_accuracy",
-        accuracy
-    )
-
-    mlflow.log_metric(
-        "test_precision",
-        precision
-    )
-
-    mlflow.log_metric(
-        "test_recall",
-        recall
-    )
-
-    mlflow.log_metric(
-        "test_f1",
-        f1
-    )
+    mlflow.log_params({
+        "model": "RandomForestClassifier",
+        "cv": 3,
+        "scoring": "accuracy",
+        **best_params
+    })
 
 
-    # =====================================================
-    # Display results
-    # =====================================================
+    # ========================================================
+    # LOG METRICS
+    # ========================================================
 
-    print("\nModel Evaluation")
+    mlflow.log_metrics({
+        "cv_accuracy": best_cv_score,
+        "test_accuracy": accuracy,
+        "test_precision": precision,
+        "test_recall": recall,
+        "test_f1": f1
+    })
+
+
+    # ========================================================
+    # PRINT RESULTS
+    # ========================================================
+
+    print("\n==============================")
+    print("MODEL EVALUATION")
     print("==============================")
+
     print(f"Accuracy : {accuracy:.4f}")
     print(f"Precision: {precision:.4f}")
     print(f"Recall   : {recall:.4f}")
     print(f"F1 Score : {f1:.4f}")
 
 
-    # =====================================================
-    # Save best model
-    # =====================================================
+    # ========================================================
+    # SAVE MODEL
+    # ========================================================
 
     joblib.dump(
         best_model,
         MODEL_PATH
     )
 
-    print(
-        "\nBest model saved to:"
-    )
-
+    print("\nBest model saved to:")
     print(MODEL_PATH)
 
 
-    # =====================================================
-    # Log model to MLflow
-    # =====================================================
+    # ========================================================
+    # LOG MODEL TO MLflow
+    # ========================================================
 
     mlflow.sklearn.log_model(
         best_model,
         artifact_path="tourism_model"
     )
+
+    print("\nMLflow run ID:")
+    print(run.info.run_id)
 
 
 print("\nTraining completed successfully.")
