@@ -31,8 +31,8 @@ DATA_DIR = PROJECT_ROOT / "data" / "processed"
 
 XTRAIN_PATH = DATA_DIR / "Xtrain.csv"
 XTEST_PATH = DATA_DIR / "Xtest.csv"
-YTRAIN_PATH = DATA_DIR / "ytrain.csv"
-YTEST_PATH = DATA_DIR / "ytest.csv"
+YTRAIN_PATH = DATA_DIR / "Ytrain.csv"
+YTEST_PATH = DATA_DIR / "Ytest.csv"
 
 DEPLOYMENT_DIR = PROJECT_ROOT / "deployment"
 DEPLOYMENT_DIR.mkdir(parents=True, exist_ok=True)
