@@ -1,3 +1,5 @@
+
+
 name: Tourism Project Pipeline
 
 on:
@@ -9,6 +11,10 @@ on:
 
 permissions:
   contents: write
+
+concurrency:
+  group: tourism-pipeline-main
+  cancel-in-progress: true
 
 jobs:
 
@@ -65,7 +71,7 @@ jobs:
           path: tourism_project/data/processed/
 
 
-  model-traning:
+  model-training:
     needs: data-prep
     runs-on: ubuntu-latest
 
@@ -93,10 +99,32 @@ jobs:
       - name: Model Building
         run: python tourism_project/model_building/train.py
 
+      - name: Check Trained Model
+        run: |
+          ls -lh tourism_project/deployment/
+          test -f tourism_project/deployment/tourism_model.joblib
+
       - name: Commit Trained Model
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Ignore MLflow generated files
+          echo "mlflow.db" >> .gitignore
+          echo "mlruns/" >> .gitignore
+
+          # Add required files
+          git add .gitignore
           git add tourism_project/deployment/tourism_model.joblib
+
+          # Commit model
           git commit -m "Add trained model [skip ci]" || echo "No changes to commit"
-          git push
+
+          # Get latest changes from GitHub
+          git fetch origin main
+
+          # Rebase local commit on latest main
+          git rebase origin/main
+
+          # Push updated branch
+          git push origin main
