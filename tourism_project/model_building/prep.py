@@ -10,9 +10,9 @@ from sklearn.model_selection import train_test_split
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-DATA_PATH = PROJECT_ROOT/"data"/"tourism.csv"
+DATA_PATH = PROJECT_ROOT / "data" / "tourism.csv"
 
-OUTPUT_DIR = PROJECT_ROOT/"data"/"processed"
+OUTPUT_DIR = PROJECT_ROOT / "data" / "processed"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
@@ -87,8 +87,8 @@ X_train, X_test, y_train, y_test = train_test_split(
 
 X_train_path = OUTPUT_DIR / "Xtrain.csv"
 X_test_path = OUTPUT_DIR / "Xtest.csv"
-y_train_path = OUTPUT_DIR / "ytrain.csv"
-y_test_path = OUTPUT_DIR / "ytest.csv"
+y_train_path = OUTPUT_DIR / "Ytrain.csv"
+y_test_path = OUTPUT_DIR / "Ytest.csv"
 
 X_train.to_csv(X_train_path, index=False)
 X_test.to_csv(X_test_path, index=False)
